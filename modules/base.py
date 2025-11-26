@@ -1,5 +1,6 @@
 import gc
 import os
+import os.path as osp
 import time
 from typing import Dict, List, Callable, Union
 from copy import deepcopy
@@ -325,7 +326,10 @@ MODULE_SCRIPTS = {
     
 def init_module_registries(target_modules=None):
     def _load_module(module_dir: str, module_pattern: str):
-        modules = os.listdir(module_dir)
+        abs_module_dir = module_dir
+        if not osp.isabs(module_dir):
+            abs_module_dir = osp.join(shared.PROGRAM_PATH, module_dir)
+        modules = os.listdir(abs_module_dir)
         pattern = re.compile(module_pattern)
         module_path = module_dir.replace('/', '.')
         if not module_path.endswith('.'):

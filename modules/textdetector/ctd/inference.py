@@ -8,6 +8,8 @@ import torch
 from pathlib import Path
 import einops
 
+import utils.shared as shared
+
 from utils.io_utils import find_all_imgs, NumpyEncoder
 from utils.imgproc_utils import letterbox, xyxy2yolo, get_yololabel_strings, square_pad_resize
 
@@ -18,7 +20,11 @@ from .textmask import refine_mask, refine_undetected_mask, REFINEMASK_INPAINT, R
 from pathlib import Path
 from typing import Union, List, Tuple, Callable
 
-CTD_MODEL_PATH = r'data/models/comictextdetector.pt'
+
+def _ctd_model_path(device: str) -> str:
+    if device == 'cpu':
+        return shared.resolve_data_path('models', 'comictextdetector.pt.onnx')
+    return shared.resolve_data_path('models', 'comictextdetector.pt')
 
 def det_rearrange_forward(
     img: np.ndarray, 
@@ -283,7 +289,7 @@ class TextDetector:
     def set_device(self, device: str):
         if self.device == device:
             return
-        model_path = CTD_MODEL_PATH+'.onnx' if device == 'cpu' else CTD_MODEL_PATH
+        model_path = _ctd_model_path(device)
         if not osp.exists(model_path):
             raise FileNotFoundError(f'CTD model not found: {model_path}')
         self.load_model(model_path)

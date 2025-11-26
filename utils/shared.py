@@ -3,21 +3,72 @@ import os
 import os.path as osp
 import json
 import sys
+from pathlib import Path
 
 ICON_PATH = 'icons/icon.icns'
 
 PROGRAM_PATH = osp.abspath(osp.dirname(osp.dirname(__file__)))
-LOGGING_PATH = osp.join(PROGRAM_PATH, 'logs')
 
-LIBS_PATH = osp.join(PROGRAM_PATH, 'data/libs')
+
+def _ensure_dir(path: str) -> str:
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def _user_data_root() -> str:
+    home = Path.home()
+    if sys.platform == 'win32':
+        base = Path(os.environ.get('APPDATA', home / 'AppData' / 'Roaming'))
+    elif sys.platform == 'darwin':
+        base = home / 'Library' / 'Application Support'
+    else:
+        base = Path(os.environ.get('XDG_DATA_HOME', home / '.local' / 'share'))
+    return str(base / 'BalloonsTranslator')
+
+
+USER_STORAGE_ROOT = _ensure_dir(_user_data_root())
+DATA_STATIC_ROOT = osp.join(PROGRAM_PATH, 'data')
+DATA_RUNTIME_ROOT = _ensure_dir(osp.join(USER_STORAGE_ROOT, 'data'))
+CONFIG_ROOT = _ensure_dir(osp.join(USER_STORAGE_ROOT, 'config'))
+LOGGING_PATH = _ensure_dir(osp.join(USER_STORAGE_ROOT, 'logs'))
+
+
+def get_config_path(*parts: str, ensure: bool = True) -> str:
+    path = osp.join(CONFIG_ROOT, *parts)
+    if ensure:
+        os.makedirs(osp.dirname(path), exist_ok=True)
+    return path
+
+
+def get_config_dir(*parts: str) -> str:
+    return _ensure_dir(osp.join(CONFIG_ROOT, *parts))
+
+
+def get_data_dir(*parts: str) -> str:
+    return _ensure_dir(osp.join(DATA_RUNTIME_ROOT, *parts))
+
+
+def get_data_file(*parts: str, ensure_parent: bool = True) -> str:
+    path = osp.join(DATA_RUNTIME_ROOT, *parts)
+    if ensure_parent:
+        os.makedirs(osp.dirname(path), exist_ok=True)
+    return path
+
+
+def resolve_data_path(*parts: str) -> str:
+    runtime_path = osp.join(DATA_RUNTIME_ROOT, *parts)
+    if osp.exists(runtime_path):
+        return runtime_path
+    return osp.join(DATA_STATIC_ROOT, *parts)
+
+
+LIBS_PATH = get_data_dir('libs')
 
 STYLESHEET_PATH = osp.join(PROGRAM_PATH, 'config/stylesheet.css')
 THEME_PATH = osp.join(PROGRAM_PATH, 'config/themes.json')
-CONFIG_PATH = osp.join(PROGRAM_PATH, 'config/config.json')
+CONFIG_PATH = get_config_path('config.json')
 
-DEFAULT_TEXTSTYLE_DIR = osp.join(PROGRAM_PATH, 'config/textstyles')
-if not osp.exists(DEFAULT_TEXTSTYLE_DIR):
-    os.makedirs(DEFAULT_TEXTSTYLE_DIR)
+DEFAULT_TEXTSTYLE_DIR = get_config_dir('textstyles')
 
 
 CONFIG_FONTSIZE_HEADER = 18
@@ -73,7 +124,7 @@ FOREGROUND_FONTCOLOR = (93,93,95)
 
 MAX_NUM_LOG = 7
 
-TRANSLATE_DIR = osp.join(PROGRAM_PATH, 'translate')
+TRANSLATE_DIR = osp.join(PROGRAM_PATH, 'utils/translate')
 DISPLAY_LANGUAGE_MAP = {
     "English": "English",
     "简体中文": "zh_CN",
@@ -85,6 +136,7 @@ DISPLAY_LANGUAGE_MAP = {
     "Français": "fr_FR"
 }
 VALID_LANG_SET = set(list(DISPLAY_LANGUAGE_MAP.values()))
+
 
 for p in os.listdir(TRANSLATE_DIR):
     if p.endswith('.qm'):
@@ -104,8 +156,8 @@ args = None
 FUZZY_MATCH_IMAGE_NAME = False
 
 cache_data: Dict = None
-cache_dir: str = osp.join(PROGRAM_PATH, '.btrans_cache')
-cache_path: str = osp.join(PROGRAM_PATH, '.btrans_cache/cache.json')
+cache_dir: str = _ensure_dir(osp.join(USER_STORAGE_ROOT, '.btrans_cache'))
+cache_path: str = osp.join(cache_dir, 'cache.json')
 CACHE_UPDATED = False
 check_local_file_hash = True
 

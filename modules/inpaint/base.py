@@ -4,6 +4,8 @@ from typing import Dict, List
 from collections import OrderedDict
 import sys
 
+import utils.shared as shared
+
 from utils.registry import Registry
 from utils.textblock_mask import extract_ballon_mask
 from utils.imgproc_utils import enlarge_window
@@ -186,12 +188,13 @@ class OpenCVInpainter(InpainterBase):
 @register_inpainter('patchmatch')
 class PatchmatchInpainter(InpainterBase):
 
+    libs_dir = shared.get_data_dir('libs')
     if sys.platform == 'darwin':
         download_file_list = [{
                 'url': 'https://github.com/dmMaze/PyPatchMatchInpaint/releases/download/v1.0/macos_arm64_patchmatch_libs.7z',
                 'sha256_pre_calculated': ['843704ab096d3afd8709abe2a2c525ce3a836bb0a629ed1ee9b8f5cee9938310', '849ca84759385d410c9587d69690e668822a3fc376ce2219e583e7e0be5b5e9a'],
                 'files': ['macos_libopencv_world.4.8.0.dylib', 'macos_libpatchmatch_inpaint.dylib'],
-                'save_dir': 'data/libs',
+                'save_dir': libs_dir,
                 'archived_files': 'macos_patchmatch_libs.7z',
                 'archive_sha256_pre_calculated': '9f332c888be0f160dbe9f6d6887eb698a302e62f4c102a0f24359c540d5858ea'
         }]
@@ -200,7 +203,7 @@ class PatchmatchInpainter(InpainterBase):
                 'url': 'https://github.com/dmMaze/PyPatchMatchInpaint/releases/download/v1.0/windows_patchmatch_libs.7z',
                 'sha256_pre_calculated': ['3b7619caa29dc3352b939de4e9981217a9585a13a756e1101a50c90c100acd8d', '0ba60cfe664c97629daa7e4d05c0888ebfe3edcb3feaf1ed5a14544079c6d7af'],
                 'files': ['opencv_world455.dll', 'patchmatch_inpaint.dll'],
-                'save_dir': 'data/libs',
+                'save_dir': libs_dir,
                 'archived_files': 'windows_patchmatch_libs.7z',
                 'archive_sha256_pre_calculated': 'c991ff61f7cb3efaf8e75d957e62d56ba646083bc25535f913ac65775c16ca65'
         }]
@@ -247,9 +250,9 @@ class AOTInpainter(InpainterBase):
     _load_model_keys = {'model'}
 
     download_file_list = [{
-            'url': 'https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/inpainting.ckpt',
-            'sha256_pre_calculated': '878d541c68648969bc1b042a6e997f3a58e49b6c07c5636ad55130736977149f',
-            'files': 'data/models/aot_inpainter.ckpt',
+        'url': 'https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/inpainting.ckpt',
+        'sha256_pre_calculated': '878d541c68648969bc1b042a6e997f3a58e49b6c07c5636ad55130736977149f',
+        'files': shared.get_data_file('models', 'aot_inpainter.ckpt'),
     }]
 
     def __init__(self, **params) -> None:
@@ -259,7 +262,7 @@ class AOTInpainter(InpainterBase):
         self.model: AOTGenerator = None
         
     def _load_model(self):
-        AOTMODEL_PATH = 'data/models/aot_inpainter.ckpt'
+        AOTMODEL_PATH = shared.resolve_data_path('models', 'aot_inpainter.ckpt')
         self.model = load_aot_model(AOTMODEL_PATH, self.device)
 
     def moveToDevice(self, device: str, precision: str = None):
@@ -348,8 +351,8 @@ class LamaInpainterMPE(InpainterBase):
     download_file_list = [{
             'url': 'https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/inpainting_lama_mpe.ckpt',
             'sha256_pre_calculated': 'd625aa1b3e0d0408acfd6928aa84f005867aa8dbb9162480346a4e20660786cc',
-            'files': 'data/models/lama_mpe.ckpt',
-    }]
+            'files': shared.get_data_file('models', 'lama_mpe.ckpt'),
+        }]
     _load_model_keys = {'model'}
 
     def __init__(self, **params) -> None:
@@ -360,7 +363,7 @@ class LamaInpainterMPE(InpainterBase):
         self.model: LamaFourier = None
 
     def _load_model(self):
-        self.model = load_lama_mpe(r'data/models/lama_mpe.ckpt', self.device)
+        self.model = load_lama_mpe(shared.resolve_data_path('models', 'lama_mpe.ckpt'), self.device)
 
     def inpaint_preprocess(self, img: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
@@ -478,9 +481,9 @@ class LamaLarge(LamaInpainterMPE):
     }
 
     download_file_list = [{
-            'url': 'https://huggingface.co/dreMaz/AnimeMangaInpainting/resolve/main/lama_large_512px.ckpt',
-            'sha256_pre_calculated': '11d30fbb3000fb2eceae318b75d9ced9229d99ae990a7f8b3ac35c8d31f2c935',
-            'files': 'data/models/lama_large_512px.ckpt',
+        'url': 'https://huggingface.co/dreMaz/AnimeMangaInpainting/resolve/main/lama_large_512px.ckpt',
+        'sha256_pre_calculated': '11d30fbb3000fb2eceae318b75d9ced9229d99ae990a7f8b3ac35c8d31f2c935',
+        'files': shared.get_data_file('models', 'lama_large_512px.ckpt'),
     }]
 
     def __init__(self, **params) -> None:
@@ -491,7 +494,7 @@ class LamaLarge(LamaInpainterMPE):
         device = self.params['device']['value']
         precision = self.params['precision']['value']
 
-        self.model = load_lama_mpe(r'data/models/lama_large_512px.ckpt', device='cpu', use_mpe=False, large_arch=True)
+        self.model = load_lama_mpe(shared.resolve_data_path('models', 'lama_large_512px.ckpt'), device='cpu', use_mpe=False, large_arch=True)
         self.moveToDevice(device, precision=precision)
 
 

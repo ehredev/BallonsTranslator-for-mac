@@ -9,7 +9,7 @@ fi
 pyenv global '3.11.5'
 
 # Create and activate Python 3.11.5 virtual environment
-python -m venv 'venv'
+python3 -m venv 'venv'
 source 'venv/bin/activate'
 
 # Install dependencies

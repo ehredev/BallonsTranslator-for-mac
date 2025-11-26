@@ -2,11 +2,18 @@ import numpy as np
 import cv2
 from typing import Tuple, List
 
+import utils.shared as shared
+
 from .base import register_textdetectors, TextDetectorBase, TextBlock, DEFAULT_DEVICE, DEVICE_SELECTOR, ProjImgTrans
 from .ctd import CTDModel
 
-CTD_ONNX_PATH = 'data/models/comictextdetector.pt.onnx'
-CTD_TORCH_PATH = 'data/models/comictextdetector.pt'
+
+def _ctd_onnx_path() -> str:
+    return shared.resolve_data_path('models', 'comictextdetector.pt.onnx')
+
+
+def _ctd_torch_path() -> str:
+    return shared.resolve_data_path('models', 'comictextdetector.pt')
 
 def load_ctd_model(model_path, device, detect_size=1024) -> CTDModel:
     model = CTDModel(model_path, detect_size=detect_size, device=device)
@@ -37,7 +44,8 @@ class ComicTextDetector(TextDetectorBase):
     _load_model_keys = {'model'}
     download_file_list = [{
         'url': 'https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/',
-        'files': ['data/models/comictextdetector.pt', 'data/models/comictextdetector.pt.onnx'],
+        'files': ['comictextdetector.pt', 'comictextdetector.pt.onnx'],
+        'save_dir': shared.get_data_dir('models'),
         'sha256_pre_calculated': ['1f90fa60aeeb1eb82e2ac1167a66bf139a8a61b8780acd351ead55268540cccb', '1a86ace74961413cbd650002e7bb4dcec4980ffa21b2f19b86933372071d718f'],
         'concatenate_url_filename': 2,
     }]
@@ -58,9 +66,9 @@ class ComicTextDetector(TextDetectorBase):
 
     def _load_model(self):
         if self.device != 'cpu':
-            self.model = load_ctd_model(CTD_TORCH_PATH, self.device, self.detect_size)
+            self.model = load_ctd_model(_ctd_torch_path(), self.device, self.detect_size)
         else:
-            self.model = load_ctd_model(CTD_ONNX_PATH, self.device, self.detect_size)
+            self.model = load_ctd_model(_ctd_onnx_path(), self.device, self.detect_size)
 
     def _detect(self, img: np.ndarray, proj: ProjImgTrans) -> Tuple[np.ndarray, List[TextBlock]]:
         _, mask, blk_list = self.model(img)
@@ -91,7 +99,7 @@ class ComicTextDetector(TextDetectorBase):
             if self.model.device != device:
                 self.model.device = device
                 if device != 'cpu':
-                    self.model.load_model(CTD_TORCH_PATH)
+                    self.model.load_model(_ctd_torch_path())
                 else:
-                    self.model.load_model(CTD_ONNX_PATH)
+                    self.model.load_model(_ctd_onnx_path())
             self.model.detect_size = self.detect_size

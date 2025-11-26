@@ -8,12 +8,15 @@
 # Distributed under terms of the MIT license.
 
 import ctypes, os
+import os.path as osp
 import sys
 from typing import Optional, Union
 from glob import glob
 
 import numpy as np
 from PIL import Image
+
+import utils.shared as shared
 
 # try:
 #     # If the Jacinle library (https://github.com/vacancy/Jacinle) is present, use its auto_travis feature.
@@ -44,14 +47,16 @@ class CMatT(ctypes.Structure):
     ]
     
 if sys.platform == "win32":
-    patchmatchlib = 'data/libs/patchmatch_inpaint.dll'
+    patchmatchlib = shared.resolve_data_path('libs', 'patchmatch_inpaint.dll')
 elif sys.platform == "darwin":
-    patchmatchlib = 'data/libs/macos_libpatchmatch_inpaint.dylib'
-    opencv_world = glob('data/libs/macos_libopencv_world.*.dylib')
+    patchmatchlib = shared.resolve_data_path('libs', 'macos_libpatchmatch_inpaint.dylib')
+    runtime_glob = glob(osp.join(shared.resolve_data_path('libs'), 'macos_libopencv_world.*.dylib'))
+    static_glob = glob(osp.join(shared.DATA_STATIC_ROOT, 'libs', 'macos_libopencv_world.*.dylib'))
+    opencv_world = runtime_glob or static_glob
     if opencv_world:
         ctypes.CDLL(opencv_world[0])
 else:
-    patchmatchlib = 'data/libs/libpatchmatch.so'
+    patchmatchlib = shared.resolve_data_path('libs', 'libpatchmatch.so')
 
 PMLIB = ctypes.CDLL(patchmatchlib)
 PMLIB.PM_set_random_seed.argtypes = [ctypes.c_uint]
